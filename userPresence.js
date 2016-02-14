@@ -9,6 +9,12 @@ UserPresenceSessions = new Mongo.Collection('userpresencesessions');
 UserPresenceServers = new Mongo.Collection('userpresenceservers');
 
 
+UserPresenceServers._ensureIndex({ping:1});
+UserPresenceServers._ensureIndex({serverId:1});
+Meteor.users._ensureIndex({'presence.serverId':1});
+UserPresenceSessions._ensureIndex({userId:1});
+
+
 // keep track of which servers are online
 Meteor.setInterval(function() {
   let find = {serverId:serverId};

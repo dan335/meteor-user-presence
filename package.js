@@ -1,6 +1,6 @@
 Package.describe({
   name: 'danimal:userpresence',
-  version: '1.0.0',
+  version: '1.0.1',
   summary: 'Track user online status across multiple servers.',
   git: 'https://github.com/dan335/meteor-user-presence',
   documentation: 'README.md'
