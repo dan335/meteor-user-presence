@@ -2,7 +2,7 @@ Package.describe({
   name: 'danimal:userpresence',
   version: '1.0.0',
   summary: 'Track user online status across multiple servers.',
-  git: '',
+  git: 'https://github.com/dan335/meteor-user-presence',
   documentation: 'README.md'
 });
 
@@ -19,10 +19,3 @@ Package.onUse(function(api) {
     'UserPresenceServers'
   ], 'server');
 });
-
-// Package.onTest(function(api) {
-//   api.use('ecmascript');
-//   api.use('tinytest');
-//   api.use('userpresence');
-//   api.addFiles('userpresence-tests.js');
-// });
