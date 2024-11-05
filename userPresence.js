@@ -9,30 +9,30 @@ UserPresenceSessions = new Mongo.Collection('userpresencesessions');
 UserPresenceServers = new Mongo.Collection('userpresenceservers');
 
 
-UserPresenceServers._ensureIndex({ping:1});
-UserPresenceServers._ensureIndex({serverId:1});
-Meteor.users._ensureIndex({'presence.serverId':1});
-UserPresenceSessions._ensureIndex({userId:1});
+UserPresenceServers.createIndex({ping:1});
+UserPresenceServers.createIndex({serverId:1});
+Meteor.users.createIndex({'presence.serverId':1});
+UserPresenceSessions.createIndex({userId:1});
 
 
 // keep track of which servers are online
-Meteor.setInterval(function() {
+Meteor.setInterval(async function() {
   let find = {serverId:serverId};
   let modifier = {$set: {ping:new Date()}};
-  UserPresenceServers.upsert(find, modifier);
+  await UserPresenceServers.upsertAsync(find, modifier);
 }, 1000 * 30);
 
 
 // remove old servers and sessions
 // update status of users connected to that server
-Meteor.setInterval(function() {
+Meteor.setInterval(async function() {
   let cutoff = new Date();
   cutoff.setMinutes(new Date().getMinutes() - 5);
-  UserPresenceServers.find({ping: {$lt:cutoff}}).forEach(function(server) {
-    UserPresenceServers.remove(server._id);
-    UserPresenceSessions.remove({serverId:server.serverId});
-    Meteor.users.find({'presence.serverId':server.serverId}).forEach(function(user) {
-      trackUserStatus(user._id);
+  UserPresenceServers.find({ping: {$lt:cutoff}}).forEachAsync(async function(server) {
+    await UserPresenceServers.removeAsync(server._id);
+    await UserPresenceSessions.removeAsync({serverId:server.serverId});
+    Meteor.users.find({'presence.serverId':server.serverId}).forEachAsync(async function(user) {
+     await trackUserStatus(user._id);
     })
   })
 }, 1000 * 10);
@@ -40,14 +40,14 @@ Meteor.setInterval(function() {
 
 
 // track user connection and disconnection
-Meteor.publish(null, function(){
+Meteor.publish(null, async function(){
   var self = this;
 
   if(self.userId && self.connection && self.connection.id){
-    userConnected(self.userId, self.connection);
+   await userConnected(self.userId, self.connection);
 
-    self.onStop(function(){
-      userDisconnected(self.userId, self.connection);
+    self.onStop(async function(){
+      await userDisconnected(self.userId, self.connection);
     });
   }
 
@@ -56,21 +56,21 @@ Meteor.publish(null, function(){
 
 
 
-var userConnected = function(userId, connection) {
-  UserPresenceSessions.insert({serverId:serverId, userId:userId, connectionId:connection.id, createdAt:new Date()});
-  trackUserStatus(userId, connection);
+var userConnected = async function(userId, connection) {
+  await UserPresenceSessions.insertAsync({serverId:serverId, userId:userId, connectionId:connection.id, createdAt:new Date()});
+  await trackUserStatus(userId, connection);
 }
 
 
 
-var userDisconnected = function(userId, connection) {
-  UserPresenceSessions.remove({userId:userId, connectionId:connection.id});
-  trackUserStatus(userId, connection);
+var userDisconnected = async function(userId, connection) {
+  await UserPresenceSessions.removeAsync({userId:userId, connectionId:connection.id});
+  await trackUserStatus(userId, connection);
 }
 
 
 
-var trackUserStatus = function(userId, connection) {
+var trackUserStatus = async function(userId, connection) {
   let presence = {
     updatedAt: new Date(),
     serverId: serverId
@@ -81,7 +81,7 @@ var trackUserStatus = function(userId, connection) {
     presence.httpHeaders = connection.httpHeaders;
   }
 
-  let isOnline = UserPresenceSessions.find({userId:userId}).count();
+  let isOnline = await UserPresenceSessions.find({userId:userId}).countAsync();
 
   if (isOnline) {
     presence.status = 'online';
@@ -89,5 +89,5 @@ var trackUserStatus = function(userId, connection) {
     presence.status = 'offline';
   }
 
-  Meteor.users.update(userId, {$set: {presence:presence}});
+  await Meteor.users.updateAsync(userId, {$set: {presence:presence}});
 }
